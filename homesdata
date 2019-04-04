@@ -1,0 +1,353 @@
+openapi: 3.0.1
+info:
+  title: Netatmo - Energy
+  description: >-
+    This is a sample test for describing NETATMO's APIs with the OAS3 standard
+    definition using swagger.
+  termsOfService: 'https://dev.netatmo.com/resources/legal'
+  contact:
+    name: Contact API Netatmo
+    url: 'https://dev.netatmo.com/resources/legal'
+    email: contact-api@netatmo.com
+  license:
+    name: Netatmo Legal
+    url: 'https://dev.netatmo.com/resources/legal'
+  version: 1.1.1
+externalDocs:
+  description: Find out more about Netatmo API
+  url: 'https://dev.netatmo.com/resources/technical/introduction'
+servers:
+  - url: 'https://{environnement}.netatmo.com/api'
+    description: Netatmo's API endpoint
+    variables:
+      environnnement:
+        description: Production-Integration server
+        default: api
+        enum:
+          - api
+          - apicom.inte
+tags:
+  - name: user
+    description: Info - User
+    externalDocs:
+      description: Energy
+      url: 'https://dev.netatmo.com/resources/technical/reference/energy'
+  - name: home
+    description: Info - Home
+    externalDocs:
+      description: Homesdata
+      url: 'https://dev.netatmo.com/resources/technical/reference/energy/homesdata'
+  - name: schedule
+    description: Info - Schedule
+    externalDocs:
+      description: Schedule
+      url: >-
+        https://dev.netatmo.com/resources/technical/reference/energy/createnewhomeschedule
+  - name: room
+    description: Info - Room
+  - name: modules
+    description: Info - Modules
+paths:
+  /homesdata:
+    get:
+      tags:
+        - user
+        - home
+      summary: Retrieve user's homes and their topology.
+      description: USER and HOME
+      operationId: Homesdata
+      parameters:
+        - name: home_id
+          in: query
+          description: Filter by the ID of the home you want
+          required: false
+          style: form
+          schema:
+            type: array
+            items:
+              type: string
+              example: 5954e7f249c75f97428b7b23
+        - name: gateway_types
+          in: query
+          description: Filter by Gateway Type
+          required: false
+          style: form
+          schema:
+            type: array
+            items:
+              type: string
+              example: Thermostat/Valves = NAPLUG  /Welcome = NACamera /Presence = NOC
+              enum:
+                - NAPLUG
+                - NACamera
+                - NOC
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Homesdata'
+        '400':
+          description: Invalid request
+          content: {}
+      deprecated: false
+      security:
+        - energy_auth:
+            - read_thermostat
+components:
+  schemas:
+    Homesdata:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - $ref: '#/components/schemas/ServerResponse'
+        - $ref: '#/components/schemas/Home'
+
+    Home:
+      type: object
+      properties:
+        id:
+          maxLength: 24
+          type: string
+          example: aaa1a1a1a1a1a1a1a1a1aaa
+        name:
+          type: string
+          example: Your House
+        atlitude:
+          type: integer
+          example: 89
+        coordinates:
+          maxItems: 2
+          type: array
+          items:
+            type: string
+            example: '2.2395477, 48.8296512'
+        country:
+          type: string
+          example: FR
+        timezone:
+          type: string
+          example: Europe/paris
+        room:
+          type: array
+          items:
+            $ref: '#/components/schemas/Room'
+        modules:
+          type: array
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/NAPlug'
+              - $ref: '#/components/schemas/NRV_NATherm1'
+        therm_schedule:
+          type: array
+          items:
+            $ref: '#/components/schemas/Therm_schedule'
+        therm_set_point_default_duration:
+          type: integer
+          example: 180
+        therm_mode:
+          type: string
+          example: schedule
+    User:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        langage:
+          type: string
+          example: fr-FR
+        locale:
+          type: string
+          example: fr-FR
+        feel_like_algorithm:
+          maximum: 1
+          minimum: 0
+          type: integer
+        unit_pressure:
+          maximum: 2
+          minimum: 0
+          type: integer
+        unit_system:
+          maximum: 1
+          minimum: 0
+          type: integer
+        unit_wind:
+          maximum: 4
+          minimum: 0
+          type: integer
+        id:
+          maxLength: 24
+          type: string
+          example: 5c81004fd6e33f0b008b4df2
+    Room:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 3466299980
+        name:
+          type: string
+          example: myRoom
+        type:
+          type: string
+          example: Kitchen
+        module_ids:
+          type: array
+          items:
+            type: string
+            example: '09:00:00:00:0e:e0'
+    Module:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: '01:00:00:00:0e:e0'
+        name:
+          type: string
+          example: myThermostat
+        setup_date:
+          type: string
+          example: '1498736626'
+        type:
+          type: string
+          example: NAPlug|NRV|NACamera|NSD
+          enum:
+            - NAPlug
+            - NRV
+            - NATherm1
+            - NACamera
+            - NSD
+    NRV_NATherm1:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/Module'
+        - type: object
+          properties:
+            bridge:
+              type: string
+              example: '01:00:00:00:0e:e0'
+    NAPlug:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/Module'
+        - type: object
+          properties:
+            module_bridged:
+              type: array
+              items:
+                type: string
+                example: '02:00:00:00:0e:e0, 03:00:00:00:0e:e0'
+    Therm_schedule:
+      type: object
+      properties:
+        timetable:
+          type: array
+          items:
+            $ref: '#/components/schemas/Timetable'
+        zones:
+          type: array
+          items:
+            $ref: '#/components/schemas/Zones'
+        name:
+          type: string
+        away_temp:
+          type: integer
+        hg_temp:
+          type: integer
+        default:
+          type: boolean
+        id:
+          type: integer
+        selected:
+          type: boolean
+        type:
+          type: string
+          example: therm
+    Timetable:
+      type: object
+      properties:
+        zone_id:
+          type: integer
+        m_offset:
+          type: integer
+    Zones:
+      type: object
+      properties:
+        type:
+          type: integer
+        name:
+          type: string
+          example: confort
+        id:
+          type: integer
+        rooms_temp:
+          type: array
+          items:
+            $ref: '#/components/schemas/Rooms_temp'
+    Rooms_temp:
+      type: object
+      properties:
+        room_id:
+          type: string
+        temp:
+          type: integer
+    ServerResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        time_exec:
+          type: string
+          example: '0.060059070587158'
+        time_server:
+          type: string
+          example: '1553777827'
+    HomesTEST_inner:
+      type: object
+      properties:
+        id:
+          maxLength: 24
+          type: string
+          example: 1aaa1a1a1a1a1a1a1a1a1aaa
+        name:
+          type: string
+          example: Your House
+        atlitude:
+          type: integer
+          example: 89
+        coordinates:
+          maxItems: 2
+          type: array
+          items:
+            type: string
+            example: '2.2395477, 48.8296512'
+        country:
+          type: string
+          example: FR
+        timezone:
+          type: string
+          example: Europe/paris
+        room:
+          type: array
+          items:
+            $ref: '#/components/schemas/Room'
+  securitySchemes:
+    energy_auth:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: 'https://api.netatmo.com/oauth2/token'
+          scopes:
+            read_station: 'retrieve station  (dataGetstationsdata, Getmeasure)'
+            read_thermostat: 'to retrieve thermostat data ( Getroommeasure, Homestatus)'
+            write_thermostat: 'set up the thermostat (Synchomeschedule, Setroomthermpoint)'
+    api_key:
+      type: apiKey
+      name: api_key
+      in: header
